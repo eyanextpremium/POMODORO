@@ -1,0 +1,22 @@
+{
+  "name": "pomodoro-app",
+  "version": "1.0.0",
+  "main": "main.js",
+  "author": "Eyüp Yasin Avcı",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.eyup.pomodoro",
+    "productName": "Pomodoro",
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    }
+  }
+}

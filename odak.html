@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Odak — Pomodoro Zamanlayıcı</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F1B14; --surface:#16261C; --surface2:#1D3227; --primary:#4CA771;
+    --accent:#E8B84B; --text:#EDF3ED; --textmuted:#9FB3A6; --ring-track:#22392C;
+    --danger:#E0685A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Inter',sans-serif; background:var(--bg); color:var(--text);
+    min-height:100vh; display:flex; justify-content:center; padding:32px 16px 80px;
+    transition:background .4s ease, color .4s ease;
+  }
+  .app{width:100%; max-width:560px;}
+  .brand{display:flex; align-items:center; justify-content:space-between; margin-bottom:28px;}
+  .brand-left{display:flex; align-items:center; gap:10px;}
+  .brand-mark{width:34px; height:34px; border-radius:50%; background:var(--primary); position:relative; flex-shrink:0;}
+  .brand-mark::after{content:''; position:absolute; top:7px; left:16px; width:2px; height:9px; background:var(--bg); border-radius:2px;}
+  .brand-mark::before{content:''; position:absolute; top:16px; left:16px; width:8px; height:2px; background:var(--bg); border-radius:2px;}
+  .brand-name{font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:20px; letter-spacing:.2px;}
+  .points-pill{display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--surface2); padding:8px 14px; border-radius:999px; font-size:13px; font-weight:500; color:var(--accent);}
+  .premium-badge{display:inline-block; margin-left:8px; font-size:10px; font-weight:600; background:var(--accent); color:var(--bg); padding:2px 8px; border-radius:999px; letter-spacing:.4px;}
+
+  .nav{display:flex; gap:6px; background:var(--surface); padding:5px; border-radius:14px; margin-bottom:24px;}
+  .nav button{flex:1; padding:10px 6px; border:none; background:transparent; color:var(--textmuted); font-family:'Inter'; font-size:13px; font-weight:500; border-radius:10px; cursor:pointer; transition:all .2s;}
+  .nav button.active{background:var(--surface2); color:var(--text);}
+  .nav button:hover:not(.active){color:var(--text);}
+
+  .panel{background:var(--surface); border-radius:20px; padding:28px 24px; min-height:340px;}
+  .section{display:none;}
+  .section.active{display:block;}
+
+  /* Timer */
+  .mode-label{text-align:center; font-size:13px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--primary); margin-bottom:18px;}
+  .ring-wrap{position:relative; width:260px; height:260px; margin:0 auto 22px;}
+  .ring-wrap svg{width:100%; height:100%; transform:rotate(-90deg);}
+  .ring-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .time-text{font-family:'Space Grotesk',sans-serif; font-size:52px; font-weight:600; letter-spacing:1px; font-variant-numeric:tabular-nums;}
+  .session-text{font-size:12px; color:var(--textmuted); margin-top:6px;}
+  .controls{display:flex; gap:10px; justify-content:center; margin-bottom:20px;}
+  .btn{font-family:'Inter'; font-weight:600; font-size:14px; padding:13px 26px; border-radius:12px; border:none; cursor:pointer; transition:transform .15s, opacity .15s;}
+  .btn:active{transform:scale(0.96);}
+  .btn-primary{background:var(--primary); color:var(--bg);}
+  .btn-ghost{background:var(--surface2); color:var(--text);}
+  .btn-ghost:hover{opacity:.85;}
+  .btn-primary:hover{opacity:.9;}
+  .stats-row{display:flex; justify-content:center; gap:28px; text-align:center;}
+  .stat{font-size:20px; font-weight:600; font-family:'Space Grotesk';}
+  .stat-label{font-size:11px; color:var(--textmuted); margin-top:2px;}
+  .note{font-size:11.5px; color:var(--textmuted); text-align:center; margin-top:20px; line-height:1.5;}
+
+  /* Settings */
+  .field{margin-bottom:18px;}
+  .field label{display:block; font-size:13px; color:var(--textmuted); margin-bottom:8px; font-weight:500;}
+  .field-row{display:flex; align-items:center; gap:12px;}
+  .field-row input[type=number]{width:80px; background:var(--surface2); border:1px solid transparent; color:var(--text); font-family:'Space Grotesk'; font-size:18px; font-weight:600; padding:10px 12px; border-radius:10px; text-align:center;}
+  .field-row input[type=number]:focus{outline:none; border-color:var(--primary);}
+  .field-row span{font-size:13px; color:var(--textmuted);}
+  .settings-save{margin-top:8px;}
+
+  /* Themes */
+  .theme-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .theme-card{border-radius:14px; padding:12px; cursor:pointer; border:2px solid transparent; background:var(--surface2); transition:border-color .15s;}
+  .theme-card.selected{border-color:var(--accent);}
+  .theme-swatch{height:44px; border-radius:8px; margin-bottom:8px; display:flex; overflow:hidden;}
+  .theme-swatch div{flex:1;}
+  .theme-name{font-size:12px; font-weight:500; text-align:center;}
+  .premium-card{grid-column:span 3; border-radius:14px; padding:16px; background:var(--surface2); text-align:center;}
+  .lock-icon{font-size:22px; margin-bottom:6px;}
+  .custom-colors{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:14px 0;}
+  .color-field{display:flex; flex-direction:column; align-items:center; gap:6px;}
+  .color-field label{font-size:10.5px; color:var(--textmuted);}
+  .color-field input[type=color]{width:44px; height:44px; border:none; border-radius:10px; background:none; cursor:pointer; padding:0;}
+
+  /* Store */
+  .store-balance{text-align:center; padding:20px 0 24px;}
+  .store-balance .big{font-family:'Space Grotesk'; font-size:44px; font-weight:700; color:var(--accent);}
+  .store-balance .lbl{font-size:13px; color:var(--textmuted); margin-top:4px;}
+  .store-item{background:var(--surface2); border-radius:14px; padding:18px; display:flex; justify-content:space-between; align-items:center; gap:12px;}
+  .store-item-info h4{font-size:15px; font-weight:600; margin-bottom:4px;}
+  .store-item-info p{font-size:12.5px; color:var(--textmuted);}
+  .premium-status{margin-top:16px; padding:14px 16px; border-radius:12px; background:rgba(232,184,75,.12); border:1px solid var(--accent); font-size:13px; text-align:center; color:var(--accent);}
+
+  .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--surface2); color:var(--text); padding:12px 20px; border-radius:12px; font-size:13px; font-weight:500; opacity:0; transition:all .3s; pointer-events:none; z-index:50; border:1px solid var(--primary);}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  @media(max-width:420px){
+    .theme-grid{grid-template-columns:repeat(2,1fr);}
+    .premium-card{grid-column:span 2;}
+    .time-text{font-size:44px;}
+    .ring-wrap{width:220px; height:220px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="brand">
+    <div class="brand-left">
+      <div class="brand-mark"></div>
+      <div class="brand-name">Odak</div>
+    </div>
+    <div class="points-pill" id="pointsPill">✦ <span id="pointsVal">0</span> puan</div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn active" data-tab="timer">Zamanlayıcı</button>
+    <button class="nav-btn" data-tab="themes">Temalar</button>
+    <button class="nav-btn" data-tab="store">Mağaza</button>
+    <button class="nav-btn" data-tab="settings">Ayarlar</button>
+  </div>
+
+  <div class="panel">
+    <!-- TIMER -->
+    <div class="section active" id="tab-timer">
+      <div class="mode-label" id="modeLabel">ÇALIŞMA</div>
+      <div class="ring-wrap">
+        <svg viewBox="0 0 260 260">
+          <circle cx="130" cy="130" r="115" fill="none" stroke="var(--ring-track)" stroke-width="14"/>
+          <circle id="progressRing" cx="130" cy="130" r="115" fill="none" stroke="var(--primary)" stroke-width="14" stroke-linecap="round" stroke-dasharray="722.6" stroke-dashoffset="0"/>
+        </svg>
+        <div class="ring-center">
+          <div class="time-text" id="timeText">25:00</div>
+          <div class="session-text" id="sessionText">1. tur</div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn btn-primary" id="startPauseBtn">Başlat</button>
+        <button class="btn btn-ghost" id="resetBtn">Sıfırla</button>
+      </div>
+      <div class="stats-row">
+        <div>
+          <div class="stat" id="todayMinutes">0</div>
+          <div class="stat-label">bugün dakika</div>
+        </div>
+        <div>
+          <div class="stat" id="completedSessions">0</div>
+          <div class="stat-label">tamamlanan tur</div>
+        </div>
+      </div>
+      <div class="note">Not: Sekme arka planda veya küçültülmüşken zamanlayıcı çalışmaya devam eder. Cihaz tamamen kilitlenir veya sekme kapatılırsa tarayıcılar JS'i durdurabilir; tekrar açtığınızda süre gerçek zamana göre otomatik güncellenir.</div>
+    </div>
+
+    <!-- THEMES -->
+    <div class="section" id="tab-themes">
+      <div class="theme-grid" id="themeGrid"></div>
+    </div>
+
+    <!-- STORE -->
+    <div class="section" id="tab-store">
+      <div class="store-balance">
+        <div class="big" id="storePoints">0</div>
+        <div class="lbl">toplam puan · her 10 dakika çalışma = 1 puan</div>
+      </div>
+      <div class="store-item">
+        <div class="store-item-info">
+          <h4>1 haftalık Premium</h4>
+          <p>Özel tema oluşturma özelliğini 7 gün boyunca açar</p>
+        </div>
+        <button class="btn btn-primary" id="buyPremiumBtn">1000 puan</button>
+      </div>
+      <div class="premium-status" id="premiumStatus" style="display:none;"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="section" id="tab-settings">
+      <div class="field">
+        <label>Çalışma süresi</label>
+        <div class="field-row">
+          <input type="number" id="studyInput" min="1" max="180" value="25">
+          <span>dakika</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Kısa mola süresi</label>
+        <div class="field-row">
+          <input type="number" id="breakInput" min="1" max="60" value="5">
+          <span>dakika</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Uzun mola süresi</label>
+        <div class="field-row">
+          <input type="number" id="longBreakInput" min="1" max="90" value="15">
+          <span>dakika</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Kaç turda bir uzun mola</label>
+        <div class="field-row">
+          <input type="number" id="cycleInput" min="1" max="12" value="4">
+          <span>tur</span>
+        </div>
+      </div>
+      <button class="btn btn-primary settings-save" id="saveSettingsBtn">Ayarları kaydet</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const THEMES = [
+  {id:'orman', name:'Orman', bg:'#0F1B14', surface:'#16261C', surface2:'#1D3227', primary:'#4CA771', accent:'#E8B84B', text:'#EDF3ED', textmuted:'#9FB3A6', ringtrack:'#22392C'},
+  {id:'okyanus', name:'Okyanus', bg:'#081C24', surface:'#0F2C38', surface2:'#153B4B', primary:'#3AB0D6', accent:'#7FE3C4', text:'#EAF6FA', textmuted:'#8FB6C2', ringtrack:'#1B4757'},
+  {id:'gunbatimi', name:'Gün Batımı', bg:'#241214', surface:'#3A1B1E', surface2:'#4E2226', primary:'#E9704F', accent:'#F2B14B', text:'#FBEFE9', textmuted:'#C99C93', ringtrack:'#5A2A2C'},
+  {id:'geceyarisi', name:'Gece Yarısı', bg:'#0C0B1E', surface:'#161533', surface2:'#1F1E45', primary:'#7C7BE0', accent:'#E0A9E8', text:'#EFEFFB', textmuted:'#9C9BC4', ringtrack:'#282760'},
+  {id:'sakura', name:'Sakura', bg:'#251A1E', surface:'#372630', surface2:'#452F3B', primary:'#EA9AB2', accent:'#F5CFA0', text:'#FBEFF2', textmuted:'#C9A4AF', ringtrack:'#4F3540'},
+  {id:'kahve', name:'Kahve', bg:'#1E1712', surface:'#2C2119', surface2:'#3B2C20', primary:'#B98554', accent:'#E0B26A', text:'#F3EAE0', textmuted:'#B6A08C', ringtrack:'#4A3627'},
+  {id:'lavanta', name:'Lavanta', bg:'#1B1626', surface:'#28203A', surface2:'#352A4D', primary:'#A78BE0', accent:'#EAB8D6', text:'#F2ECFB', textmuted:'#B5A8CF', ringtrack:'#3E3260'},
+  {id:'kutup', name:'Kutup', bg:'#0E1B22', surface:'#182B34', surface2:'#213A45', primary:'#7FCBE0', accent:'#DCEFF2', text:'#EBF6F9', textmuted:'#8FB4BF', ringtrack:'#2A4550'},
+  {id:'col', name:'Çöl', bg:'#231A0F', surface:'#352819', surface2:'#453421', primary:'#D9A356', accent:'#E86F4E', text:'#F7ECDC', textmuted:'#C4A780', ringtrack:'#523E24'},
+  {id:'neon', name:'Neon', bg:'#0A0A0F', surface:'#15151F', surface2:'#1E1E2E', primary:'#FF5FA8', accent:'#4FF2E0', text:'#F2F2FA', textmuted:'#9494B0', ringtrack:'#28283C'},
+  {id:'gul', name:'Gül', bg:'#210E14', surface:'#33141C', surface2:'#441A25', primary:'#D9536E', accent:'#F0A6B8', text:'#FAEBEE', textmuted:'#C79AA3', ringtrack:'#521F2C'},
+  {id:'nane', name:'Nane', bg:'#0E1E17', surface:'#173026', surface2:'#204133', primary:'#5AD6A0', accent:'#C9F2D8', text:'#EBFAF2', textmuted:'#8FC2AA', ringtrack:'#294F3E'}
+];
+
+const STORAGE_KEY = 'odak-state';
+const RING_CIRCUMFERENCE = 2 * Math.PI * 115;
+
+let state = {
+  settings:{study:25, shortBreak:5, longBreak:15, cyclesForLong:4, theme:'orman', customTheme:null},
+  stats:{points:0, pointUnits:0, sessionsCompleted:0, todaySeconds:0, todayDate:new Date().toDateString(), premiumUntil:0},
+  timer:{mode:'study', endTimestamp:0, remainingMs:25*60*1000, isRunning:false, lastTickReal:0, sessionCount:1}
+};
+
+let saveTimer = null;
+function scheduleSave(){
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(persistState, 1500);
+}
+async function persistState(){
+  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state)); }catch(e){ console.error('save failed', e); }
+}
+async function loadState(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY);
+    if(res && res.value){
+      const loaded = JSON.parse(res.value);
+      state = Object.assign(state, loaded);
+      state.settings = Object.assign({study:25,shortBreak:5,longBreak:15,cyclesForLong:4,theme:'orman',customTheme:null}, loaded.settings);
+      state.stats = Object.assign({points:0,pointUnits:0,sessionsCompleted:0,todaySeconds:0,todayDate:new Date().toDateString(),premiumUntil:0}, loaded.stats);
+      state.timer = Object.assign({mode:'study',endTimestamp:0,remainingMs:state.settings.study*60*1000,isRunning:false,lastTickReal:0,sessionCount:1}, loaded.timer);
+    }
+  }catch(e){ console.log('no saved state yet'); }
+  if(state.stats.todayDate !== new Date().toDateString()){
+    state.stats.todayDate = new Date().toDateString();
+    state.stats.todaySeconds = 0;
+  }
+  if(state.timer.isRunning && state.timer.endTimestamp){
+    const remain = state.timer.endTimestamp - Date.now();
+    if(remain <= 0){
+      state.timer.isRunning = false;
+      advanceSession();
+    } else {
+      state.timer.remainingMs = remain;
+    }
+  }
+}
+
+function isPremiumActive(){ return state.stats.premiumUntil && state.stats.premiumUntil > Date.now(); }
+
+function modeDurationMs(mode){
+  if(mode==='study') return state.settings.study*60*1000;
+  if(mode==='shortBreak') return state.settings.shortBreak*60*1000;
+  return state.settings.longBreak*60*1000;
+}
+function modeLabelText(mode){
+  if(mode==='study') return 'ÇALIŞMA';
+  if(mode==='shortBreak') return 'KISA MOLA';
+  return 'UZUN MOLA';
+}
+
+let worker;
+function initWorker(){
+  const code = "setInterval(()=>postMessage('tick'),1000);";
+  const blob = new Blob([code], {type:'application/javascript'});
+  worker = new Worker(URL.createObjectURL(blob));
+  worker.onmessage = onTick;
+}
+
+function onTick(){
+  if(!state.timer.isRunning) return;
+  const now = Date.now();
+  const remain = state.timer.endTimestamp - now;
+
+  if(state.timer.mode === 'study'){
+    const lastReal = state.timer.lastTickReal || now;
+    const elapsedSec = Math.max(0, (now - lastReal)/1000);
+    state.stats.todaySeconds += elapsedSec;
+    state.stats.pointUnits = (state.stats.pointUnits || 0) + elapsedSec;
+    while(state.stats.pointUnits >= 600){
+      state.stats.pointUnits -= 600;
+      state.stats.points += 1;
+      showToast('+1 puan kazandınız');
+    }
+  }
+  state.timer.lastTickReal = now;
+
+  if(remain <= 0){
+    advanceSession();
+  }
+  renderTimer();
+  scheduleSave();
+}
+
+function advanceSession(){
+  const finishedMode = state.timer.mode;
+  if(finishedMode === 'study'){
+    state.stats.sessionsCompleted += 1;
+    const isLong = state.timer.sessionCount % state.settings.cyclesForLong === 0;
+    state.timer.mode = isLong ? 'longBreak' : 'shortBreak';
+    notifyUser('Çalışma tamamlandı', 'Mola zamanı!');
+  } else {
+    if(finishedMode === 'longBreak') state.timer.sessionCount += 1;
+    else state.timer.sessionCount += 1;
+    state.timer.mode = 'study';
+    notifyUser('Mola bitti', 'Çalışmaya devam!');
+  }
+  const dur = modeDurationMs(state.timer.mode);
+  state.timer.endTimestamp = Date.now() + dur;
+  state.timer.remainingMs = dur;
+  state.timer.lastTickReal = Date.now();
+  scheduleSave();
+}
+
+function notifyUser(title, body){
+  playBeep();
+  if('Notification' in window && Notification.permission === 'granted'){
+    try{ new Notification(title, {body}); }catch(e){}
+  }
+}
+function playBeep(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 660;
+    g.gain.setValueAtTime(0.001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.4);
+    o.start(); o.stop(ctx.currentTime+0.42);
+  }catch(e){}
+}
+
+function fmtTime(ms){
+  const totalSec = Math.max(0, Math.ceil(ms/1000));
+  const m = Math.floor(totalSec/60);
+  const s = totalSec%60;
+  return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+function renderTimer(){
+  const remain = state.timer.isRunning ? Math.max(0, state.timer.endTimestamp - Date.now()) : state.timer.remainingMs;
+  document.getElementById('timeText').textContent = fmtTime(remain);
+  document.getElementById('modeLabel').textContent = modeLabelText(state.timer.mode);
+  document.getElementById('sessionText').textContent = state.timer.sessionCount + '. tur';
+  const dur = modeDurationMs(state.timer.mode);
+  const frac = dur>0 ? Math.min(1, Math.max(0, remain/dur)) : 0;
+  const ring = document.getElementById('progressRing');
+  ring.setAttribute('stroke-dasharray', RING_CIRCUMFERENCE);
+  ring.setAttribute('stroke-dashoffset', RING_CIRCUMFERENCE*(1-frac));
+  document.getElementById('startPauseBtn').textContent = state.timer.isRunning ? 'Duraklat' : 'Başlat';
+  document.getElementById('todayMinutes').textContent = Math.floor(state.stats.todaySeconds/60);
+  document.getElementById('completedSessions').textContent = state.stats.sessionsCompleted;
+  document.getElementById('pointsVal').textContent = state.stats.points;
+  document.getElementById('storePoints').textContent = state.stats.points;
+}
+
+function startPause(){
+  if(state.timer.isRunning){
+    state.timer.remainingMs = Math.max(0, state.timer.endTimestamp - Date.now());
+    state.timer.isRunning = false;
+  } else {
+    if('Notification' in window && Notification.permission === 'default'){
+      Notification.requestPermission();
+    }
+    state.timer.endTimestamp = Date.now() + state.timer.remainingMs;
+    state.timer.lastTickReal = Date.now();
+    state.timer.isRunning = true;
+  }
+  renderTimer();
+  scheduleSave();
+}
+function resetTimer(){
+  state.timer.isRunning = false;
+  state.timer.mode = 'study';
+  state.timer.sessionCount = 1;
+  state.timer.remainingMs = modeDurationMs('study');
+  renderTimer();
+  scheduleSave();
+}
+
+function applyTheme(theme){
+  const r = document.documentElement.style;
+  r.setProperty('--bg', theme.bg);
+  r.setProperty('--surface', theme.surface);
+  r.setProperty('--surface2', theme.surface2);
+  r.setProperty('--primary', theme.primary);
+  r.setProperty('--accent', theme.accent);
+  r.setProperty('--text', theme.text);
+  r.setProperty('--textmuted', theme.textmuted);
+  r.setProperty('--ring-track', theme.ringtrack);
+}
+
+function currentThemeObject(){
+  if(state.settings.theme === 'custom' && state.settings.customTheme && isPremiumActive()){
+    return state.settings.customTheme;
+  }
+  const found = THEMES.find(t=>t.id===state.settings.theme);
+  return found || THEMES[0];
+}
+
+function renderThemes(){
+  const grid = document.getElementById('themeGrid');
+  grid.innerHTML = '';
+  THEMES.forEach(t=>{
+    const card = document.createElement('div');
+    card.className = 'theme-card' + (state.settings.theme===t.id ? ' selected':'');
+    card.innerHTML = `<div class="theme-swatch"><div style="background:${t.bg}"></div><div style="background:${t.primary}"></div><div style="background:${t.accent}"></div></div><div class="theme-name">${t.name}</div>`;
+    card.addEventListener('click', ()=>{
+      state.settings.theme = t.id;
+      applyTheme(t);
+      renderThemes();
+      scheduleSave();
+    });
+    grid.appendChild(card);
+  });
+
+  const premiumCard = document.createElement('div');
+  premiumCard.className = 'premium-card';
+  if(isPremiumActive()){
+    const ct = state.settings.customTheme || {bg:'#101010',surface:'#181818',surface2:'#222',primary:'#E8B84B',accent:'#4CA771',text:'#F0F0F0',textmuted:'#999',ringtrack:'#2A2A2A'};
+    premiumCard.innerHTML = `
+      <div style="font-weight:600; margin-bottom:4px;">Özel tema <span class="premium-badge">PREMIUM</span></div>
+      <p style="font-size:12px; color:var(--textmuted); margin-bottom:10px;">Kendi renklerinizi seçin ve uygulayın</p>
+      <div class="custom-colors">
+        <div class="color-field"><label>Arkaplan</label><input type="color" id="c-bg" value="${ct.bg}"></div>
+        <div class="color-field"><label>Yüzey</label><input type="color" id="c-surface" value="${ct.surface}"></div>
+        <div class="color-field"><label>Ana renk</label><input type="color" id="c-primary" value="${ct.primary}"></div>
+        <div class="color-field"><label>Vurgu</label><input type="color" id="c-accent" value="${ct.accent}"></div>
+      </div>
+      <button class="btn btn-primary" id="applyCustomBtn">Özel temayı uygula</button>
+    `;
+    grid.appendChild(premiumCard);
+    document.getElementById('applyCustomBtn').addEventListener('click', ()=>{
+      const bg = document.getElementById('c-bg').value;
+      const surface = document.getElementById('c-surface').value;
+      const primary = document.getElementById('c-primary').value;
+      const accent = document.getElementById('c-accent').value;
+      const custom = {bg, surface, surface2:surface, primary, accent, text:'#F5F5F5', textmuted:'#A0A0A0', ringtrack:surface};
+      state.settings.customTheme = custom;
+      state.settings.theme = 'custom';
+      applyTheme(custom);
+      renderThemes();
+      scheduleSave();
+      showToast('Özel tema uygulandı');
+    });
+  } else {
+    premiumCard.innerHTML = `
+      <div class="lock-icon">🔒</div>
+      <div style="font-weight:600; margin-bottom:4px;">Özel tema <span class="premium-badge">PREMIUM</span></div>
+      <p style="font-size:12px; color:var(--textmuted);">Kendi renklerinizle tema oluşturmak için premium gerekir. Mağazadan puanlarınızla satın alabilirsiniz.</p>
+    `;
+    grid.appendChild(premiumCard);
+  }
+}
+
+function renderStore(){
+  const btn = document.getElementById('buyPremiumBtn');
+  btn.disabled = state.stats.points < 1000;
+  btn.style.opacity = state.stats.points < 1000 ? '0.5' : '1';
+  const statusEl = document.getElementById('premiumStatus');
+  if(isPremiumActive()){
+    statusEl.style.display = 'block';
+    const days = Math.ceil((state.stats.premiumUntil - Date.now())/(24*3600*1000));
+    statusEl.textContent = 'Premium aktif · ' + days + ' gün kaldı';
+  } else {
+    statusEl.style.display = 'none';
+  }
+}
+
+function buyPremium(){
+  if(state.stats.points < 1000) return;
+  state.stats.points -= 1000;
+  const base = isPremiumActive() ? state.stats.premiumUntil : Date.now();
+  state.stats.premiumUntil = base + 7*24*3600*1000;
+  renderTimer();
+  renderStore();
+  renderThemes();
+  scheduleSave();
+  showToast('1 haftalık premium satın alındı');
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active', s.id==='tab-'+tab));
+  if(tab==='themes') renderThemes();
+  if(tab==='store') renderStore();
+}
+
+function loadSettingsIntoInputs(){
+  document.getElementById('studyInput').value = state.settings.study;
+  document.getElementById('breakInput').value = state.settings.shortBreak;
+  document.getElementById('longBreakInput').value = state.settings.longBreak;
+  document.getElementById('cycleInput').value = state.settings.cyclesForLong;
+}
+function saveSettings(){
+  const study = Math.max(1, parseInt(document.getElementById('studyInput').value)||25);
+  const shortBreak = Math.max(1, parseInt(document.getElementById('breakInput').value)||5);
+  const longBreak = Math.max(1, parseInt(document.getElementById('longBreakInput').value)||15);
+  const cyclesForLong = Math.max(1, parseInt(document.getElementById('cycleInput').value)||4);
+  state.settings.study = study;
+  state.settings.shortBreak = shortBreak;
+  state.settings.longBreak = longBreak;
+  state.settings.cyclesForLong = cyclesForLong;
+  if(!state.timer.isRunning){
+    state.timer.remainingMs = modeDurationMs(state.timer.mode);
+  }
+  renderTimer();
+  scheduleSave();
+  showToast('Ayarlar kaydedildi');
+}
+
+document.querySelectorAll('.nav-btn').forEach(b=> b.addEventListener('click', ()=>switchTab(b.dataset.tab)));
+document.getElementById('startPauseBtn').addEventListener('click', startPause);
+document.getElementById('resetBtn').addEventListener('click', resetTimer);
+document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+document.getElementById('buyPremiumBtn').addEventListener('click', buyPremium);
+
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible' && state.timer.isRunning){
+    onTick();
+  }
+});
+window.addEventListener('beforeunload', ()=>{ persistState(); });
+
+(async function init(){
+  await loadState();
+  applyTheme(currentThemeObject());
+  loadSettingsIntoInputs();
+  renderTimer();
+  renderThemes();
+  renderStore();
+  initWorker();
+  if(state.timer.isRunning){
+    state.timer.lastTickReal = Date.now();
+  }
+  setInterval(()=>{ if(state.timer.isRunning) renderTimer(); }, 250);
+})();
+</script>
+</body>
+</html>
