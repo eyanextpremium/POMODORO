@@ -304,36 +304,23 @@
       </div>
 
       <div class="pricing-grid">
-        <div class="store-item">
-          <div class="store-item-info">
-            <h4>Aylik Premium</h4>
-            <p>1 ay premium erisimi</p>
-          </div>
-          <button class="btn btn-primary pay-btn" data-plan="monthly">$2</button>
-        </div>
+  <div class="store-item" style="max-width: 400px; margin: 0 auto;">
+    <div class="store-item-info">
+      <h4>Ömür Boyu Premium</h4>
+      <p>Kalıcı premium erişimi. Abonelik yok, tek seferlik ödeme!</p>
+    </div>
+    <button class="btn btn-primary" id="buyLifetimeBtn">$10</button>
+  </div>
+</div>
 
-        <div class="store-item">
-          <div class="store-item-info">
-            <h4>3 Aylik Premium</h4>
-            <p>3 ay premium erisimi</p>
-          </div>
-          <button class="btn btn-primary pay-btn" data-plan="quarterly">$4</button>
+      <div class="store-item" style="max-width: 400px; margin: 20px auto 0;">
+        <div class="store-item-info">
+          <h4>Lisans Anahtarınız Var Mı?</h4>
+          <p>Gumroad'dan aldığınız lisans anahtarını girerek aktif edebilirsiniz.</p>
         </div>
-
-        <div class="store-item">
-          <div class="store-item-info">
-            <h4>Yillik Premium</h4>
-            <p>12 ay premium erisimi</p>
-          </div>
-          <button class="btn btn-primary pay-btn" data-plan="yearly">$10</button>
-        </div>
-
-        <div class="store-item">
-          <div class="store-item-info">
-            <h4>Omur Boyu Premium</h4>
-            <p>Kalici premium erisimi</p>
-          </div>
-          <button class="btn btn-primary pay-btn" data-plan="lifetime">$15</button>
+        <div class="field-row" style="margin-top:12px; justify-content:center;">
+          <input type="text" id="licenseKeyInput" placeholder="Lisans Anahtarı" style="width:200px; font-size:14px; text-align:left;">
+          <button class="btn btn-primary" id="verifyLicenseBtn">Aktifleştir</button>
         </div>
       </div>
 
@@ -386,7 +373,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const API_BASE = '[localhost](http://localhost:3000/api)';
+const API_BASE = 'http://localhost:5000/api';
 
 const THEMES = [
   {id:'orman', name:'Orman', bg:'#0F1B14', surface:'#16261C', surface2:'#1D3227', primary:'#4CA771', accent:'#E8B84B', text:'#EDF3ED', textmuted:'#9FB3A6', ringtrack:'#22392C'},
@@ -999,25 +986,41 @@ function renderClock(){
   `;
 }
 
-async function createCheckout(plan){
-  try{
-    const res = await fetch(`${API_BASE}/create-checkout-session`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+async function verifyLicense(){
+  const key = document.getElementById('licenseKeyInput').value.trim();
+  if(!key){
+    showToast('Lütfen lisans anahtarını girin');
+    return;
+  }
+  const btn = document.getElementById('verifyLicenseBtn');
+  btn.textContent = 'Doğrulanıyor...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${API_BASE}/verify-license`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        plan,
+        license_key: key,
         deviceId: getDeviceId()
       })
     });
     const data = await res.json();
-    if(data.url){
-      window.location.href = data.url;
+    if(data.success){
+      showToast(data.message);
+      state.premium.active = true;
+      state.premium.lifetime = true;
+      scheduleSave();
+      renderStore();
+      renderThemes();
     } else {
-      showToast('Odeme baslatilamadi');
+      showToast(data.error || 'Doğrulama başarısız');
     }
-  }catch(e){
-    console.error(e);
-    showToast('Odeme baslatilamadi');
+  } catch(e) {
+    showToast('Sunucuya bağlanılamadı');
+  } finally {
+    btn.textContent = 'Aktifleştir';
+    btn.disabled = false;
   }
 }
 
@@ -1052,9 +1055,22 @@ function registerEvents(){
     scheduleSave();
   });
 
-  document.querySelectorAll('.pay-btn').forEach(btn => {
-    btn.addEventListener('click', () => createCheckout(btn.dataset.plan));
+  document.getElementById('buyLifetimeBtn').addEventListener('click', (e) => {
+    e.preventDefault();
+    const url = 'https://eyyupavci.gumroad.com/l/tqjvzr';
+    
+    // Electron ortam kontrolü
+    if (typeof process !== 'undefined' && process.versions && process.versions.electron) {
+      require('electron').shell.openExternal(url);
+    } else {
+      window.open(url, '_blank');
+    }
   });
+
+  const verifyBtn = document.getElementById('verifyLicenseBtn');
+  if (verifyBtn) {
+    verifyBtn.addEventListener('click', verifyLicense);
+  }
 
   document.addEventListener('visibilitychange', () => {
     if(document.visibilityState === 'visible'){
