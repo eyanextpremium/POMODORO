@@ -373,7 +373,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const API_BASE = 'http://localhost:5000/api';
+const GUMROAD_VERIFY_URL = 'https://api.gumroad.com/v2/licenses/verify';
 
 const THEMES = [
   {id:'orman', name:'Orman', bg:'#0F1B14', surface:'#16261C', surface2:'#1D3227', primary:'#4CA771', accent:'#E8B84B', text:'#EDF3ED', textmuted:'#9FB3A6', ringtrack:'#22392C'},
@@ -522,22 +522,18 @@ async function loadState(){
   }
 }
 
-async function refreshPremiumStatus(){
-  try{
-    const res = await fetch(`${API_BASE}/premium-status?deviceId=${encodeURIComponent(getDeviceId())}`);
-    const data = await res.json();
-    state.premium = {
-      active: !!data.active,
-      plan: data.plan || null,
-      expiresAt: data.expiresAt || null,
-      lifetime: !!data.lifetime
-    };
-    renderStore();
-    renderThemes();
-    scheduleSave();
-  }catch(e){
-    console.error('premium status alinamadi', e);
+async function refreshPremiumStatus() {
+  const status = localStorage.getItem(STORAGE_KEY);
+  if (status) {
+    const loaded = JSON.parse(status);
+    if (loaded.premium && loaded.premium.lifetime) {
+      state.premium.active = true;
+      state.premium.lifetime = true;
+      state.premium.plan = 'lifetime';
+    }
   }
+  renderStore();
+  renderThemes();
 }
 
 function isPremiumActive(){
