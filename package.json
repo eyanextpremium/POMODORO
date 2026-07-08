@@ -1,8 +1,14 @@
 {
-  "name": "pomodoro-app",
+  "name": "zirveodak",
   "version": "1.0.0",
+  "description": "A minimalist desktop Pomodoro and focus tool built with Electron.",
   "main": "main.js",
-  "author": "Eyüp Yasin Avcı",
+  "author": "E",
+  "homepage": "https://eyanextpremium.github.io/POMODORO/",
+  "funding": {
+    "type": "gumroad",
+    "url": "https://eyanextpremium.github.io/POMODORO/"
+  },
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder"
@@ -13,7 +19,7 @@
   },
   "build": {
     "appId": "com.eyup.pomodoro",
-    "productName": "Pomodoro",
+    "productName": "ZirveOdak",
     "win": {
       "target": "nsis",
       "icon": "icon.ico"
